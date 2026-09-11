@@ -42,14 +42,135 @@
         .pulse-glow {
             animation: pulseGlow 2.5s infinite ease-in-out;
         }
+
+        /* ===================== COMPTE A REBOURS ===================== */
+        .cd-cell {
+            position: relative;
+            background: linear-gradient(180deg, rgba(41,25,20,.95), rgba(12,8,8,.98));
+            border: 1px solid rgba(245,158,11,.35);
+            border-radius: 14px;
+            box-shadow: inset 0 1px 0 rgba(255,255,255,.06), 0 8px 24px rgba(0,0,0,.5);
+            overflow: hidden;
+        }
+        /* trait de separation facon afficheur mecanique */
+        .cd-cell::after {
+            content: ''; position: absolute; left: 0; right: 0; top: 50%;
+            height: 1px; background: rgba(0,0,0,.65); pointer-events: none;
+        }
+        .cd-num {
+            font-family: 'DejaVu Sans Mono', ui-monospace, monospace;
+            font-variant-numeric: tabular-nums;
+            line-height: 1;
+            background: linear-gradient(180deg,#fff 0%,#ffc247 45%,#ff3a00 100%);
+            -webkit-background-clip: text; background-clip: text;
+            -webkit-text-fill-color: transparent;
+            filter: drop-shadow(0 0 14px rgba(255,90,0,.45));
+        }
+        @keyframes tick { 0% { transform: scale(1.12); } 100% { transform: scale(1); } }
+        .cd-tick { animation: tick .35s cubic-bezier(.2,.8,.3,1); }
+
+        /* braises qui montent en fond */
+        @keyframes ember {
+            0%   { transform: translateY(0) scale(1); opacity: 0; }
+            15%  { opacity: .8; }
+            100% { transform: translateY(-120px) scale(.3); opacity: 0; }
+        }
+        .ember {
+            position: absolute; bottom: -6px; width: 3px; height: 3px; border-radius: 50%;
+            background: #ff8a1f; box-shadow: 0 0 8px 2px rgba(255,120,0,.7);
+            animation: ember linear infinite; pointer-events: none;
+        }
+
+        @keyframes breathe { 0%,100% { opacity:.55 } 50% { opacity:1 } }
+        .breathe { animation: breathe 2.2s ease-in-out infinite; }
+
+        /* flash de deverrouillage */
+        @keyframes unlockFlash { 0% { opacity: 0 } 12% { opacity: .85 } 100% { opacity: 0 } }
+        #unlockFlash { animation: unlockFlash 1.1s ease-out forwards; }
+
+        /* egaliseur du bouton musique */
+        .eq { display: inline-flex; align-items: flex-end; gap: 2px; height: 14px; }
+        .eq i { width: 3px; background: currentColor; border-radius: 1px; height: 4px; }
+        .eq.playing i { animation: bounce .6s ease-in-out infinite; }
+        .eq.playing i:nth-child(2) { animation-delay: .15s }
+        .eq.playing i:nth-child(3) { animation-delay: .3s }
+        .eq.playing i:nth-child(4) { animation-delay: .45s }
+        @keyframes bounce { 0%,100% { height: 4px } 50% { height: 14px } }
+
+        /* barre d'attente avant la question suivante */
+        @keyframes drain { from { width: 100% } to { width: 0% } }
     </style>
 </head>
 <body class="bg-stone-950 text-stone-100 min-h-screen font-sans flex flex-col items-center justify-center p-3 sm:p-6">
 
-    <div id="tabQuest" class="w-full max-w-2xl flex flex-col items-center">
-        
+    <!-- ================== ECRAN VERROUILLE / COMPTE A REBOURS ================== -->
+    <div id="lockScreen" class="w-full max-w-2xl flex flex-col items-center">
+        <div class="portal-card w-full rounded-2xl p-6 sm:p-9 text-center relative overflow-hidden">
+
+            <div class="absolute -top-16 -left-16 w-40 h-40 bg-red-600/25 rounded-full blur-3xl pointer-events-none"></div>
+            <div class="absolute -bottom-16 -right-16 w-40 h-40 bg-amber-600/20 rounded-full blur-3xl pointer-events-none"></div>
+            <div id="emberField" class="absolute inset-0 pointer-events-none overflow-hidden"></div>
+
+            <div class="relative z-10">
+                <div class="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-red-950/80 border border-red-500/40 text-red-400 text-[11px] font-bold uppercase tracking-widest mb-6">
+                    <span class="breathe">&#128274;</span> Portail scell&eacute; &bull; Val de Loire
+                </div>
+
+                <h1 class="text-3xl sm:text-5xl font-metal flame-text tracking-wider mb-2">
+                    L'&Eacute;PREUVE EST SCELL&Eacute;E
+                </h1>
+                <p class="text-stone-400 text-sm sm:text-base mb-1">
+                    Les trois &eacute;nigmes se d&eacute;verrouillent le
+                </p>
+                <p class="text-amber-300 font-bold text-lg sm:text-xl tracking-wide mb-7">
+                    Vendredi 18 septembre 2026 &bull; 16h00
+                </p>
+
+                <!-- Cellules du compte a rebours -->
+                <div id="cdGrid" class="grid grid-cols-4 gap-2 sm:gap-4 mb-7">
+                    <div class="cd-cell py-4 sm:py-6">
+                        <div id="cdD" class="cd-num text-3xl sm:text-6xl font-bold">00</div>
+                        <div class="text-[9px] sm:text-[11px] uppercase tracking-[.2em] text-stone-400 mt-2 font-bold">Jours</div>
+                    </div>
+                    <div class="cd-cell py-4 sm:py-6">
+                        <div id="cdH" class="cd-num text-3xl sm:text-6xl font-bold">00</div>
+                        <div class="text-[9px] sm:text-[11px] uppercase tracking-[.2em] text-stone-400 mt-2 font-bold">Heures</div>
+                    </div>
+                    <div class="cd-cell py-4 sm:py-6">
+                        <div id="cdM" class="cd-num text-3xl sm:text-6xl font-bold">00</div>
+                        <div class="text-[9px] sm:text-[11px] uppercase tracking-[.2em] text-stone-400 mt-2 font-bold">Minutes</div>
+                    </div>
+                    <div class="cd-cell py-4 sm:py-6">
+                        <div id="cdS" class="cd-num text-3xl sm:text-6xl font-bold">00</div>
+                        <div class="text-[9px] sm:text-[11px] uppercase tracking-[.2em] text-stone-400 mt-2 font-bold">Secondes</div>
+                    </div>
+                </div>
+
+                <!-- Progression globale -->
+                <div class="w-full bg-stone-900 h-2 rounded-full mb-2 border border-stone-800 overflow-hidden">
+                    <div id="cdProgress" class="h-full bg-gradient-to-r from-red-600 via-orange-500 to-amber-400 transition-all duration-700" style="width:0%"></div>
+                </div>
+                <p id="cdHint" class="text-[11px] text-stone-500 mb-7 font-mono">Patience, le rituel n'est pas encore ouvert.</p>
+
+                <!-- Bouton musique -->
+                <button id="btnMusic" onclick="Metal.toggle()"
+                        class="inline-flex items-center gap-3 px-5 py-3 rounded-xl bg-stone-900 hover:bg-stone-800 border border-amber-500/40 text-amber-300 font-bold text-xs uppercase tracking-widest transition-all">
+                    <span class="eq" id="eqBars"><i></i><i></i><i></i><i></i></span>
+                    <span id="musicLabel">Lancer l'ambiance metal</span>
+                </button>
+                <p class="text-[10px] text-stone-600 mt-3">Son g&eacute;n&eacute;r&eacute; en direct &bull; coupez-le quand vous voulez</p>
+            </div>
+        </div>
+    </div>
+
+    <!-- Flash de deverrouillage -->
+    <div id="unlockFlash" class="fixed inset-0 bg-gradient-to-b from-amber-300 via-orange-500 to-red-700 pointer-events-none z-50 hidden"></div>
+
+    <!-- ================== QUETE ================== -->
+    <div id="tabQuest" class="w-full max-w-2xl flex-col items-center hidden">
+
         <div class="portal-card w-full rounded-2xl p-6 sm:p-8 text-center relative overflow-hidden">
-            
+
             <div class="absolute -top-12 -left-12 w-32 h-32 bg-red-600/20 rounded-full blur-2xl pointer-events-none"></div>
             <div class="absolute -bottom-12 -right-12 w-32 h-32 bg-amber-600/20 rounded-full blur-2xl pointer-events-none"></div>
 
@@ -79,7 +200,7 @@
             </div>
 
             <div id="questionBox" class="bg-stone-900/90 border border-stone-800 rounded-xl p-6 text-left shadow-inner relative">
-                
+
                 <div class="flex items-center justify-between mb-3 border-b border-stone-800 pb-2">
                     <span id="questionStepLabel" class="text-xs font-mono uppercase tracking-widest text-amber-400 font-bold">
                         Épreuve 1 / 3
@@ -97,7 +218,7 @@
             </div>
 
             <div id="victoryBox" class="hidden bg-stone-900/95 border-2 border-amber-500/80 rounded-2xl p-6 sm:p-8 text-center pulse-glow">
-                
+
                 <div class="w-16 h-16 bg-gradient-to-tr from-amber-500 to-red-600 rounded-full flex items-center justify-center mx-auto mb-4 shadow-lg shadow-amber-500/30">
                     <i class="fa-solid fa-map-location-dot text-stone-950 text-2xl"></i>
                 </div>
@@ -111,7 +232,7 @@
                 </h3>
 
                 <div class="bg-stone-950/90 border border-amber-500/50 rounded-xl p-5 mb-6 text-left shadow-xl space-y-5">
-                    
+
                     <div class="flex items-center gap-4 border-b border-stone-800 pb-4">
                         <div class="w-12 h-12 rounded-xl bg-amber-500/10 border border-amber-500/30 flex items-center justify-center shrink-0">
                             <i class="fa-solid fa-house-chimney-crack text-amber-400 text-2xl"></i>
@@ -134,7 +255,7 @@
                         </div>
 
                         <div class="bg-stone-900 border border-stone-800 rounded-xl p-4 space-y-4">
-                            
+
                             <div class="grid grid-cols-2 sm:grid-cols-4 gap-2 text-center font-mono">
                                 <div class="gps-slot border-2 border-dashed border-stone-700 bg-stone-950/80 rounded-lg p-2.5 h-[54px] flex flex-col items-center justify-center transition-all cursor-pointer" data-target="0">
                                     <div class="slot-content text-amber-300 font-bold text-base"></div>
@@ -181,19 +302,303 @@
 
         </div>
 
+        <!-- Bouton musique aussi pendant la quete -->
+        <button onclick="Metal.toggle()"
+                class="mt-4 inline-flex items-center gap-3 px-4 py-2 rounded-xl bg-stone-900/80 hover:bg-stone-800 border border-amber-500/30 text-amber-400/90 font-bold text-[10px] uppercase tracking-widest transition-all">
+            <span class="eq" id="eqBars2"><i></i><i></i><i></i><i></i></span>
+            <span id="musicLabel2">Ambiance metal</span>
+        </button>
     </div>
 
     <script>
+        /* =====================================================================
+           DATE DE DEVERROUILLAGE
+           L'offset +02:00 est explicite : le compte a rebours vise 16h00 heure
+           de Paris, quel que soit le fuseau du visiteur.
+           Pour tester avant l'heure, ouvrir la page avec ?unlock=1
+           ===================================================================== */
+        const UNLOCK_AT = new Date('2026-09-18T16:00:00+02:00');
+        const READ_DELAY = 6000;   // temps de lecture de la bonne reponse (ms)
+
         const GPS_LAT = 46.926029211564675;
         const GPS_LNG = -1.166056905586486;
 
         let isGpsDecrypted = false;
         let selectedPiece = null;
         let currentQuestionIndex = 0;
+        let advanceTimer = null;
 
-        // ==========================================
-        // 3 QUESTIONS / RIDDLES CONFIGURATION
-        // ==========================================
+        /* =====================================================================
+           AMBIANCE METAL — synthetisee via Web Audio, aucun fichier externe
+           ===================================================================== */
+        const Metal = (function () {
+            let ctx = null, master = null, gtrBus = null, drumBus = null;
+            let dist = null, noiseBuf = null;
+            let playing = false, timer = null, step = 0, nextTime = 0;
+
+            const BPM = 152;
+            const STEP_DUR = (60 / BPM) / 4;          // double-croche
+            const E2 = 82.41, G2 = 98.00, A2 = 110.00, C3 = 130.81, D3 = 146.83;
+
+            // Riff en mi, 32 doubles-croches (2 mesures), galop palm-mute
+            const RIFF = new Array(32).fill(null);
+            [[0,E2],[2,E2],[3,E2],[4,E2],[6,E2],[7,E2],[8,G2],[10,E2],[11,E2],[12,A2],[14,G2],
+             [16,E2],[18,E2],[19,E2],[20,E2],[22,E2],[23,E2],[24,C3],[26,D3],[28,E2],[30,E2],[31,E2]
+            ].forEach(([i, f]) => RIFF[i] = f);
+
+            const KICK = [0,2,3,4,6,7,8,10,11,12,14,16,18,19,20,22,23,24,26,28,30,31];
+            const SNARE = [4,12,20,28];
+
+            function makeCurve(k) {
+                const n = 8192, c = new Float32Array(n);
+                for (let i = 0; i < n; i++) {
+                    const x = (i * 2) / n - 1;
+                    c[i] = ((1 + k) * x) / (1 + k * Math.abs(x));
+                }
+                return c;
+            }
+
+            function init() {
+                const AC = window.AudioContext || window.webkitAudioContext;
+                ctx = new AC();
+
+                master = ctx.createGain();
+                master.gain.value = 0;
+                const comp = ctx.createDynamicsCompressor();
+                comp.threshold.value = -14; comp.ratio.value = 8;
+                master.connect(comp); comp.connect(ctx.destination);
+
+                gtrBus = ctx.createGain(); gtrBus.gain.value = 0.5; gtrBus.connect(master);
+                drumBus = ctx.createGain(); drumBus.gain.value = 0.7; drumBus.connect(master);
+
+                dist = makeCurve(22);
+
+                // buffer de bruit blanc reutilise pour caisse claire et charleston
+                noiseBuf = ctx.createBuffer(1, ctx.sampleRate, ctx.sampleRate);
+                const d = noiseBuf.getChannelData(0);
+                for (let i = 0; i < d.length; i++) d[i] = Math.random() * 2 - 1;
+            }
+
+            function noise() {
+                const s = ctx.createBufferSource();
+                s.buffer = noiseBuf; s.loop = true;
+                return s;
+            }
+
+            function guitar(t, freq, dur, gain) {
+                const pre = ctx.createGain(); pre.gain.value = 0.22;
+                const ws = ctx.createWaveShaper(); ws.curve = dist; ws.oversample = '4x';
+                const lp = ctx.createBiquadFilter(); lp.type = 'lowpass'; lp.frequency.value = 3000;
+                const hp = ctx.createBiquadFilter(); hp.type = 'highpass'; hp.frequency.value = 85;
+                const env = ctx.createGain();
+
+                // accord de puissance : fondamentale + quinte + octave
+                [[1, 1], [1.4983, 0.55], [2, 0.33]].forEach(([mult, lvl]) => {
+                    const o = ctx.createOscillator();
+                    o.type = 'sawtooth';
+                    o.frequency.value = freq * mult;
+                    const g = ctx.createGain(); g.gain.value = lvl;
+                    o.connect(g); g.connect(pre);
+                    o.start(t); o.stop(t + dur + 0.06);
+                });
+
+                pre.connect(ws); ws.connect(lp); lp.connect(hp); hp.connect(env); env.connect(gtrBus);
+                env.gain.setValueAtTime(0.0001, t);
+                env.gain.exponentialRampToValueAtTime(gain, t + 0.005);
+                env.gain.exponentialRampToValueAtTime(0.0001, t + dur);
+            }
+
+            function kick(t) {
+                const o = ctx.createOscillator(), g = ctx.createGain();
+                o.frequency.setValueAtTime(135, t);
+                o.frequency.exponentialRampToValueAtTime(44, t + 0.08);
+                g.gain.setValueAtTime(0.9, t);
+                g.gain.exponentialRampToValueAtTime(0.001, t + 0.15);
+                o.connect(g); g.connect(drumBus);
+                o.start(t); o.stop(t + 0.18);
+            }
+
+            function snare(t) {
+                const s = noise();
+                const bp = ctx.createBiquadFilter(); bp.type = 'bandpass';
+                bp.frequency.value = 1850; bp.Q.value = 0.7;
+                const g = ctx.createGain();
+                g.gain.setValueAtTime(0.55, t);
+                g.gain.exponentialRampToValueAtTime(0.001, t + 0.13);
+                s.connect(bp); bp.connect(g); g.connect(drumBus);
+                s.start(t); s.stop(t + 0.2);
+            }
+
+            function hat(t, open) {
+                const s = noise();
+                const hp = ctx.createBiquadFilter(); hp.type = 'highpass'; hp.frequency.value = 7500;
+                const dur = open ? 0.14 : 0.028;
+                const g = ctx.createGain();
+                g.gain.setValueAtTime(open ? 0.16 : 0.1, t);
+                g.gain.exponentialRampToValueAtTime(0.001, t + dur);
+                s.connect(hp); hp.connect(g); g.connect(drumBus);
+                s.start(t); s.stop(t + dur + 0.05);
+            }
+
+            function playStep(i, t) {
+                const f = RIFF[i];
+                if (f) guitar(t, f, STEP_DUR * (i % 4 === 0 ? 2.2 : 1.5), i % 4 === 0 ? 0.85 : 0.6);
+                if (KICK.indexOf(i) !== -1) kick(t);
+                if (SNARE.indexOf(i) !== -1) snare(t);
+                if (i % 2 === 0) hat(t, i === 14 || i === 30);
+            }
+
+            function scheduler() {
+                while (nextTime < ctx.currentTime + 0.18) {
+                    playStep(step, nextTime);
+                    step = (step + 1) % 32;
+                    nextTime += STEP_DUR;
+                }
+            }
+
+            function paint() {
+                ['eqBars', 'eqBars2'].forEach(id => {
+                    const el = document.getElementById(id);
+                    if (el) el.classList.toggle('playing', playing);
+                });
+                ['musicLabel', 'musicLabel2'].forEach((id, n) => {
+                    const el = document.getElementById(id);
+                    if (!el) return;
+                    el.innerText = playing
+                        ? 'Couper le son'
+                        : (n === 0 ? "Lancer l'ambiance metal" : 'Ambiance metal');
+                });
+            }
+
+            function start() {
+                if (!ctx) init();
+                if (ctx.state === 'suspended') ctx.resume();
+                playing = true;
+                step = 0;
+                nextTime = ctx.currentTime + 0.08;
+                master.gain.cancelScheduledValues(ctx.currentTime);
+                master.gain.setValueAtTime(0.0001, ctx.currentTime);
+                master.gain.exponentialRampToValueAtTime(0.32, ctx.currentTime + 1.2);
+                timer = setInterval(scheduler, 25);
+                paint();
+            }
+
+            function stop() {
+                playing = false;
+                if (timer) { clearInterval(timer); timer = null; }
+                if (master) {
+                    master.gain.cancelScheduledValues(ctx.currentTime);
+                    master.gain.setValueAtTime(master.gain.value, ctx.currentTime);
+                    master.gain.exponentialRampToValueAtTime(0.0001, ctx.currentTime + 0.4);
+                }
+                paint();
+            }
+
+            return {
+                toggle() { playing ? stop() : start(); },
+                isPlaying() { return playing; },
+                /* accord final + cymbale au moment du deverrouillage */
+                hit() {
+                    if (!ctx) return;
+                    const t = ctx.currentTime + 0.02;
+                    guitar(t, E2, 2.4, 1.0);
+                    const s = noise();
+                    const hp = ctx.createBiquadFilter(); hp.type = 'highpass'; hp.frequency.value = 5200;
+                    const g = ctx.createGain();
+                    g.gain.setValueAtTime(0.4, t);
+                    g.gain.exponentialRampToValueAtTime(0.001, t + 1.6);
+                    s.connect(hp); hp.connect(g); g.connect(drumBus);
+                    s.start(t); s.stop(t + 1.7);
+                }
+            };
+        })();
+
+        /* =====================================================================
+           COMPTE A REBOURS
+           ===================================================================== */
+        let cdTimer = null;
+        let cdStart = null;          // reference pour la barre de progression
+        const prev = { d: null, h: null, m: null, s: null };
+
+        function two(n) { return String(n).padStart(2, '0'); }
+
+        function setCell(id, val, key) {
+            const el = document.getElementById(id);
+            if (!el) return;
+            const txt = two(val);
+            if (el.innerText !== txt) {
+                el.innerText = txt;
+                el.classList.remove('cd-tick');
+                void el.offsetWidth;              // relance l'animation
+                el.classList.add('cd-tick');
+            }
+            prev[key] = val;
+        }
+
+        function seedEmbers() {
+            const field = document.getElementById('emberField');
+            if (!field) return;
+            for (let i = 0; i < 18; i++) {
+                const e = document.createElement('span');
+                e.className = 'ember';
+                e.style.left = Math.random() * 100 + '%';
+                e.style.animationDuration = (3 + Math.random() * 3.5) + 's';
+                e.style.animationDelay = (Math.random() * 5) + 's';
+                field.appendChild(e);
+            }
+        }
+
+        function tickCountdown() {
+            const now = Date.now();
+            let left = UNLOCK_AT.getTime() - now;
+
+            if (left <= 0) { unlock(); return; }
+
+            const d = Math.floor(left / 86400000);
+            const h = Math.floor(left / 3600000) % 24;
+            const m = Math.floor(left / 60000) % 60;
+            const s = Math.floor(left / 1000) % 60;
+
+            setCell('cdD', d, 'd'); setCell('cdH', h, 'h');
+            setCell('cdM', m, 'm'); setCell('cdS', s, 's');
+
+            // progression depuis la premiere ouverture de la page
+            if (cdStart === null) cdStart = left;
+            const pct = cdStart > 0 ? Math.min(100, ((cdStart - left) / cdStart) * 100) : 0;
+            const bar = document.getElementById('cdProgress');
+            if (bar) bar.style.width = pct.toFixed(2) + '%';
+
+            const hint = document.getElementById('cdHint');
+            if (hint) {
+                if (left < 60000) hint.innerText = "Le sceau se fissure...";
+                else if (left < 3600000) hint.innerText = "Plus qu'une poignée de minutes.";
+                else if (d === 0) hint.innerText = "C'est pour aujourd'hui.";
+                else hint.innerText = "Patience, le rituel n'est pas encore ouvert.";
+            }
+        }
+
+        function unlock() {
+            if (cdTimer) { clearInterval(cdTimer); cdTimer = null; }
+
+            const flash = document.getElementById('unlockFlash');
+            if (flash) {
+                flash.classList.remove('hidden');
+                setTimeout(() => flash.classList.add('hidden'), 1200);
+            }
+            if (Metal.isPlaying()) Metal.hit();
+
+            setTimeout(() => {
+                const lock = document.getElementById('lockScreen');
+                const quest = document.getElementById('tabQuest');
+                if (lock) lock.classList.add('hidden');
+                if (quest) { quest.classList.remove('hidden'); quest.classList.add('flex'); }
+                renderQuestion();
+            }, 450);
+        }
+
+        /* =====================================================================
+           QUESTIONS
+           ===================================================================== */
         const questData = [
             {
                 stepLabel: "Étape 1 / 3 • L'Héritage Métal",
@@ -231,12 +636,13 @@
         ];
 
         function renderQuestion() {
+            if (advanceTimer) { clearTimeout(advanceTimer); advanceTimer = null; }
             const q = questData[currentQuestionIndex];
             if (!q) return;
 
             document.getElementById('questionStepLabel').innerText = q.stepLabel;
             document.getElementById('questionText').innerText = q.question;
-            
+
             // Update progress bar
             const progressPercent = Math.round(((currentQuestionIndex + 1) / questData.length) * 100);
             const progressBar = document.getElementById('questProgressBar');
@@ -271,6 +677,14 @@
             if (feedback) feedback.classList.add('hidden');
         }
 
+        /* Passe a la suite : appele par le minuteur ou par le bouton "Continuer" */
+        function goNext() {
+            if (advanceTimer) { clearTimeout(advanceTimer); advanceTimer = null; }
+            currentQuestionIndex++;
+            if (currentQuestionIndex < questData.length) renderQuestion();
+            else showVictory();
+        }
+
         function checkAnswer(selectedIdx) {
             const q = questData[currentQuestionIndex];
             const isCorrect = q.options[selectedIdx].correct;
@@ -282,20 +696,28 @@
 
             if (isCorrect) {
                 feedback.classList.add('bg-emerald-950/80', 'border', 'border-emerald-600', 'text-emerald-300');
-                feedback.innerHTML = `<i class="fa-solid fa-circle-check text-emerald-400 mr-2"></i><strong>Bonne réponse !</strong> ${q.explanation}`;
+                const last = currentQuestionIndex === questData.length - 1;
+                feedback.innerHTML =
+                    `<div class="flex items-start gap-2">
+                       <i class="fa-solid fa-circle-check text-emerald-400 mt-0.5"></i>
+                       <div class="leading-relaxed text-[13px]"><strong>Bonne réponse !</strong> ${q.explanation}</div>
+                     </div>
+                     <div class="mt-3 h-1 w-full bg-emerald-900/60 rounded-full overflow-hidden">
+                       <div class="h-full bg-emerald-400" style="animation: drain ${READ_DELAY}ms linear forwards"></div>
+                     </div>
+                     <button onclick="goNext()"
+                             class="mt-3 w-full py-2 rounded-lg bg-emerald-600/20 hover:bg-emerald-600/35 border border-emerald-500/50 text-emerald-200 text-[11px] font-bold uppercase tracking-widest transition">
+                       ${last ? 'Découvrir la destination' : 'Continuer'} &rarr;
+                     </button>`;
 
-                // Disable options during delay
-                const btns = document.querySelectorAll('#optionsContainer button');
-                btns.forEach(b => b.disabled = true);
+                // Desactive les options pendant la lecture
+                document.querySelectorAll('#optionsContainer button').forEach(b => {
+                    b.disabled = true;
+                    b.classList.add('opacity-40', 'cursor-not-allowed');
+                });
 
-                setTimeout(() => {
-                    currentQuestionIndex++;
-                    if (currentQuestionIndex < questData.length) {
-                        renderQuestion();
-                    } else {
-                        showVictory();
-                    }
-                }, 1800);
+                if (advanceTimer) clearTimeout(advanceTimer);
+                advanceTimer = setTimeout(goNext, READ_DELAY);
             } else {
                 feedback.classList.add('bg-red-950/80', 'border', 'border-red-600', 'text-red-300');
                 feedback.innerHTML = `<i class="fa-solid fa-triangle-exclamation text-red-400 mr-2"></i><strong>Mauvaise réponse.</strong> Recommence pour trouver la bonne réponse !`;
@@ -310,7 +732,7 @@
             if (qBox) qBox.classList.add('hidden');
             if (vBox) vBox.classList.remove('hidden');
             if (progressBar) progressBar.style.width = '100%';
-            
+
             isGpsDecrypted = false;
             initGpsPuzzle();
 
@@ -354,7 +776,7 @@
                 s.classList.add('border-stone-700', 'bg-stone-950/80');
                 const content = s.querySelector('.slot-content');
                 if (content) content.innerText = '';
-                
+
                 s.onclick = () => handleSlotClick(parseInt(s.dataset.target));
                 s.ondragover = (e) => e.preventDefault();
                 s.ondrop = (e) => {
@@ -432,6 +854,7 @@
 
             if (isCorrect) {
                 isGpsDecrypted = true;
+                if (Metal.isPlaying()) Metal.hit();
                 const gpsBadge = document.getElementById('gpsStatusBadge');
                 if (gpsBadge) {
                     gpsBadge.className = "text-[10px] font-mono px-2 py-0.5 rounded bg-emerald-950 text-emerald-400 border border-emerald-800 ml-auto";
@@ -464,6 +887,7 @@
         }
 
         function resetQuest() {
+            if (advanceTimer) { clearTimeout(advanceTimer); advanceTimer = null; }
             currentQuestionIndex = 0;
             const vBox = document.getElementById('victoryBox');
             const qBox = document.getElementById('questionBox');
@@ -476,7 +900,7 @@
             if (!isGpsDecrypted) return;
 
             const textToCopy = `${GPS_LAT}, ${GPS_LNG}`;
-            
+
             try {
                 const tempInput = document.createElement("input");
                 tempInput.value = textToCopy;
@@ -495,8 +919,21 @@
             } catch(e) {}
         }
 
-        window.onload = function() {
-            renderQuestion();
+        window.onload = function () {
+            seedEmbers();
+
+            const bypass = new URLSearchParams(location.search).has('unlock');
+
+            if (bypass || Date.now() >= UNLOCK_AT.getTime()) {
+                document.getElementById('lockScreen').classList.add('hidden');
+                const quest = document.getElementById('tabQuest');
+                quest.classList.remove('hidden');
+                quest.classList.add('flex');
+                renderQuestion();
+            } else {
+                tickCountdown();
+                cdTimer = setInterval(tickCountdown, 250);
+            }
         };
     </script>
 </body>
